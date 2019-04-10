@@ -18,10 +18,10 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.ibm.eventstreams.connect</groupId>
-  <artifactId>kafka-connect-mq-source</artifactId>
+  <artifactId>kafka-connect-mq-source-wonderbeat</artifactId>
   <packaging>jar</packaging>
   <version>1.0.2</version>
-  <name>kafka-connect-mq-source</name>
+  <name>kafka-connect-mq-source-wonderbeat</name>
     <organization>
     <name>IBM Corporation</name>
     <url>http://ibm.com</url>
