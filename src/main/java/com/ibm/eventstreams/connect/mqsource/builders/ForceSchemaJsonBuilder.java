@@ -52,7 +52,7 @@ public class ForceSchemaJsonBuilder extends BaseRecordBuilder {
     @Override
     public void configure(Map<String, String> props) {
         super.configure(props);
-        registryURL = props.get("value.converter.schema.registry.url");
+        registryURL = props.get("schema.registry.url");
     }
 
     /**
@@ -101,12 +101,14 @@ public class ForceSchemaJsonBuilder extends BaseRecordBuilder {
      */
     private ObjectNode resolveSchemaEnvelope(String topic) throws JMSException {
         try {
-            CachedSchemaRegistryClient cachedSchemaRegistryClient = new CachedSchemaRegistryClient(registryURL, 1);
+            Integer oneElementCacheSize = 1;
+            CachedSchemaRegistryClient cachedSchemaRegistryClient =
+                    new CachedSchemaRegistryClient(registryURL, oneElementCacheSize);
             String schemaFullName = topic + "-value";
             SchemaMetadata schemaMetadata = cachedSchemaRegistryClient.getLatestSchemaMetadata(schemaFullName);
             org.apache.avro.Schema bySubjectAndID = cachedSchemaRegistryClient
                     .getBySubjectAndId(schemaMetadata.getSchema(), schemaMetadata.getId());
-            Schema schema = new AvroData(1).toConnectSchema(bySubjectAndID);
+            Schema schema = new AvroData(oneElementCacheSize).toConnectSchema(bySubjectAndID);
             return JsonSchema.envelope(converter.asJsonSchema(schema), NullNode.getInstance());
         } catch (IOException | RestClientException exception) {
             // Feels like I'm in Go Lang where I can't wrap exceptions
