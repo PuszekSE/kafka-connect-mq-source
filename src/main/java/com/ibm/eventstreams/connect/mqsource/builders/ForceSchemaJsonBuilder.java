@@ -52,7 +52,7 @@ public class ForceSchemaJsonBuilder extends BaseRecordBuilder {
     @Override
     public void configure(Map<String, String> props) {
         super.configure(props);
-        registryURL = props.get("schema.registry.url");
+        registryURL = props.get("value.converter.schema.registry.url");
     }
 
     /**
