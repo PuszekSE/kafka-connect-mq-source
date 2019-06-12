@@ -12,17 +12,11 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.errors.ConnectException;
-import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.json.JsonSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jms.BytesMessage;
-import javax.jms.JMSContext;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageFormatException;
-import javax.jms.TextMessage;
+import javax.jms.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -33,26 +27,32 @@ import java.util.Map;
  * Schema is resolved according to destination topic name
  */
 public class ForceSchemaJsonBuilder extends BaseRecordBuilder {
+
     private static final Logger log = LoggerFactory.getLogger(ForceSchemaJsonBuilder.class);
 
-    private JsonConverter converter;
+    private CustomizableJsonConverter converter;
 
     private ObjectNode envelope;
+
     private static ObjectMapper MAPPER = new ObjectMapper();
+
     private String registryURL;
 
     public ForceSchemaJsonBuilder() {
         log.info("Building records using com.ibm.eventstreams.connect.mqsource.builders.ForceSchemaJsonBuilder");
-        converter = new JsonConverter();
-        HashMap<String, String> m = new HashMap<>();
-        m.put("schemas.enable", "true");
-        converter.configure(m, false);
     }
 
     @Override
     public void configure(Map<String, String> props) {
         super.configure(props);
         registryURL = props.get("value.converter.schema.registry.url");
+        converter = new CustomizableJsonConverter();
+        HashMap<String, String> m = new HashMap<>();
+        m.put("schemas.enable", "true");
+        if (props.containsKey(CustomizableJsonConverter.CONVERSION_OVERWRITES)) {
+            m.put(CustomizableJsonConverter.CONVERSION_OVERWRITES, props.get(CustomizableJsonConverter.CONVERSION_OVERWRITES));
+        }
+        converter.configure(m, false);
     }
 
     /**
@@ -102,12 +102,11 @@ public class ForceSchemaJsonBuilder extends BaseRecordBuilder {
     private ObjectNode resolveSchemaEnvelope(String topic) throws JMSException {
         try {
             Integer oneElementCacheSize = 1;
-            CachedSchemaRegistryClient cachedSchemaRegistryClient =
-                    new CachedSchemaRegistryClient(registryURL, oneElementCacheSize);
+            CachedSchemaRegistryClient cachedSchemaRegistryClient = new CachedSchemaRegistryClient(registryURL, oneElementCacheSize);
             String schemaFullName = topic + "-value";
             SchemaMetadata schemaMetadata = cachedSchemaRegistryClient.getLatestSchemaMetadata(schemaFullName);
-            org.apache.avro.Schema bySubjectAndID = cachedSchemaRegistryClient
-                    .getBySubjectAndId(schemaMetadata.getSchema(), schemaMetadata.getId());
+            org.apache.avro.Schema bySubjectAndID = cachedSchemaRegistryClient.getBySubjectAndId(schemaMetadata.getSchema(), schemaMetadata
+                    .getId());
             Schema schema = new AvroData(oneElementCacheSize).toConnectSchema(bySubjectAndID);
             return JsonSchema.envelope(converter.asJsonSchema(schema), NullNode.getInstance());
         } catch (IOException | RestClientException exception) {
@@ -115,4 +114,5 @@ public class ForceSchemaJsonBuilder extends BaseRecordBuilder {
             throw new SchemaNotResolvableException("Can't resolve schema for message", exception.toString());
         }
     }
+
 }
